@@ -51,8 +51,9 @@ class MonitorDetectionDataset(Dataset):
         self.transform = transform
         self.data = pd.read_csv(csv_file)
         self.image_files = self.data['image_name'].tolist()
-        self.quadrilateral = [torch.tensor([float(x) for x in pts.strip('[]').split(',')]) 
-            for pts in self.data['points'].tolist()]
+        label = torch.tensor([0])
+        self.quadrilateral = [torch.cat(label, (torch.tensor([float(x) for x in pts.strip('[]').split(',')]) 
+            for pts in self.data['points'].tolist()))]
         kf = KFold(n_splits=num_splits, shuffle=True, random_state=seed)
         self.image_files, self.val_image_files, self.quadrilateral, self.val_quadrilateral = [],[],[],[]
         for i, (train_index, val_index) in enumerate(kf.split(self.image_files)):
