@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from metrics import bbox_iou
+from utils.metrics import bbox_iou
 import shapely
 from shapely.geometry import Polygon
 

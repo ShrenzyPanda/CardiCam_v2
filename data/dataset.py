@@ -51,28 +51,30 @@ class MonitorDetectionDataset(Dataset):
         self.transform = transform
         self.data = pd.read_csv(csv_file)
         self.image_files = self.data['image_name'].tolist()
-        label = torch.tensor([0])
-        self.quadrilateral = [torch.cat(label, (torch.tensor([float(x) for x in pts.strip('[]').split(',')]) 
-            for pts in self.data['points'].tolist()))]
+        self.quadrilateral = [torch.tensor([0]+[float(x) for x in pts.strip('[]').split(',')]) 
+            for pts in self.data['points'].tolist()]
         kf = KFold(n_splits=num_splits, shuffle=True, random_state=seed)
-        self.image_files, self.val_image_files, self.quadrilateral, self.val_quadrilateral = [],[],[],[]
+        self.train_x, self.val_x, self.train_y, self.val_y = [],[],[],[]
         for i, (train_index, val_index) in enumerate(kf.split(self.image_files)):
             if i != fold:
-                self.image_files.extend([self.image_files[x] for x in train_index])
-                self.quadrilateral.extend([self.quadrilateral[x] for x in train_index])
+                self.train_x.extend([self.image_files[x] for x in train_index])
+                self.train_y.extend([self.quadrilateral[x] for x in train_index])
             else:
-                self.val_image_files.extend([self.image_files[x] for x in val_index])
-                self.val_quadrilateral.extend([self.quadrilateral[x] for x in val_index])
-        if not train:
-            self.image_files = self.val_image_files
-            self.quadrilateral = self.val_quadrilateral
+                self.val_x.extend([self.image_files[x] for x in val_index])
+                self.val_y.extend([self.quadrilateral[x] for x in val_index])
+        if train:
+            self.image_files = self.train_x
+            self.quadrilateral = self.train_y
+        else:
+            self.image_files = self.val_x
+            self.quadrilateral = self.val_y
     
     def __len__(self):
         return len(self.image_files)
 
     def __getitem__(self, idx):
-        image = Image.open(os.path.join(self.root_dir, self.image_files[idx]))
-        quadrilateral = torch.tensor(self.quadrilateral[idx])
+        image = Image.open(os.path.join(self.img_dir, self.image_files[idx]))
+        quadrilateral = self.quadrilateral[idx].clone().detach()
         if self.transform:
             image = self.transform(image)
         return image, quadrilateral
