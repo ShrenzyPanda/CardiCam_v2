@@ -92,17 +92,23 @@ def random_affine(img, targets=None, degrees=(-10, 10), translate=(.1, .1), scal
 
 
 class load_images_and_labels():
-    def __init__(self, img_dir, csv_file, batch_size=1, img_size=416, augment=False):
+    def __init__(self, img_dir, csv_file, batch_size=1, img_size=416, augment=False, multi_scale=False, 
+                aug_hsv=True, aug_affine=True, lr_flip=True, plot_flag=False):
         self.img_dir = img_dir
         self.data = pd.read_csv(csv_file)
         self.img_files = self.data['image_name'].tolist()
-        self.labels = [[float(0)]+[float(x) for x in pts.strip('[]').split(',')]
+        self.labels_data = [[float(0)]+[float(x) for x in pts.strip('[]').split(',')]
             for pts in self.data['points'].tolist()]
         self.nF = len(self.img_files)  # number of image files
         self.nB = math.ceil(self.nF / batch_size)  # number of batches
         self.batch_size = batch_size
         self.height = img_size
         self.augment = augment
+        self.multi_scale = multi_scale
+        self.aug_hsv = aug_hsv
+        self.aug_affine = aug_affine
+        self.lr_flip = lr_flip
+        self.plot_flag = plot_flag
 
     def __len__(self):
         return self.nB
@@ -120,8 +126,7 @@ class load_images_and_labels():
         ib = min((self.count + 1) * self.batch_size, self.nF)
 
 		# Multi-Scale Training
-        multi_scale = False
-        if self.augment and multi_scale:
+        if self.augment and self.multi_scale:
             height = random.choice(range(10, 20)) * 32  # 320 - 608 pixels
         else:
             height = self.height
@@ -130,15 +135,14 @@ class load_images_and_labels():
         labels_all = []
         for index, files_index in enumerate(range(ia, ib)):
             img_name = self.img_files[self.shuffled_vector[files_index]]
-            label_raw = self.labels[self.shuffled_vector[files_index]]
+            label_raw = self.labels_data[self.shuffled_vector[files_index]]
             
             img = cv2.imread(os.path.join(self.img_dir, img_name))
             if img is None:
                 continue
 
             # SV augmentation by 50%
-            aug_hsv = True
-            if self.augment and aug_hsv:
+            if self.augment and self.aug_hsv:
                 fraction = 0.50
                 img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
                 S = img_hsv[:, :, 1].astype(np.float32)
@@ -162,11 +166,12 @@ class load_images_and_labels():
             img, ratio, padw, padh = resize_square(img, height=height, color=(127.5, 127.5, 127.5))
 
             if len(label_raw)==9:
-                labels = np.array([label_raw], dtype=np.float32)
+                label_np = np.array([label_raw], dtype=np.float32)
+                labels = label_np.copy()
                 for i in range(1, 8, 2):
-                    labels[:, i] = ratio * labels[:, i] + padw
+                    labels[:, i] = ratio * label_np[:, i] + padw
                 for j in range(2, 9, 2):
-                    labels[:, j] = ratio * labels[:, j] + padh
+                    labels[:, j] = ratio * label_np[:, j] + padh
             else:
                 labels = np.array([])
             
