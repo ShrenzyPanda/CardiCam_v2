@@ -1,4 +1,5 @@
 import os
+import glob
 import math
 import random
 import torch
@@ -91,6 +92,46 @@ def random_affine(img, targets=None, degrees=(-10, 10), translate=(.1, .1), scal
 
 
 
+class load_images():
+    def __init__(self, img_dir, batch_size=1, img_size=416):
+        if os.path.isdir(img_dir):
+            self.files = sorted(glob.glob('%s*.*'%img_dir))
+        elif os.path.isfile(img_dir):
+            self.files = [img_dir]
+        self.nF = len(self.files)  # number of image files
+        self.nB = math.ceil(self.nF / batch_size)  # number of batches
+        self.batch_size = batch_size
+        self.height = img_size
+        assert self.nF > 0, 'No images found in path %s' % img_dir
+    
+    def __len__(self):
+        return self.nB
+    
+    def __iter__(self):
+        self.count = -1
+        return self
+
+    def __next__(self):
+        self.count+=1
+        if self.count == self.nB:
+            raise StopIteration
+        
+        imgs_all = []
+        paths_all = []
+        ia = self.count * self.batch_size
+        ib = min((self.count + 1) * self.batch_size, self.nF)
+        for idx in range(ia, ib):
+            img_path = self.files[idx]
+            img = cv2.imread(img_path)  # BGR
+            img, _, _, _ = resize_square(img, height=self.height, color=(127.5, 127.5, 127.5))  # padded resize
+            img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB
+            img = np.ascontiguousarray(img, dtype=np.float32)
+            img /= 255.0
+            imgs_all.append(img)
+            paths_all.append(img_path)
+        return torch.from_numpy(imgs_all), paths_all 
+        
+        
 class load_images_and_labels():
     def __init__(self, img_dir, csv_file, batch_size=1, img_size=416, augment=False, multi_scale=False, 
                 aug_hsv=True, aug_affine=True, lr_flip=True, plot_flag=False):
