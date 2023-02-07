@@ -1,6 +1,7 @@
 import easyocr
 import cv2
 import numpy as np
+import re
 
 
 def count_greenary(img, bbox):
@@ -15,10 +16,56 @@ def count_greenary(img, bbox):
 class ScreenOCR(object):
     def __init__(self):
         self.reader = easyocr.Reader(['en'])
+
+    def match_vitals_by_logic(self, nums, mAPs, sys_dia, others, img):
+        # RR -> in nums nearest to 20 (limit by 0-40)
+        rrs = [n[0] for n in nums if 0<=n[0]<=45]
+        RR = None
+        if len(rrs)>0:
+            rrs.sort(key=lambda x: abs(x-20))
+            RR = int(rrs[0])
+            nums = [n for n in nums if rrs[0]!=n[0]]
+        # HR -> in nums the most green one lying between 60-140
+        HR = None
+        if len(nums)>0:
+            nums = nums[:5]
+            greenary_idx = [count_greenary(img, n[1]) for n in nums]
+            for i in range(len(greenary_idx)):
+                nums[i] = nums[i]+(greenary_idx[i],)
+            nums.sort(key = lambda x: (x[3]), reverse=True)
+            for n in nums:
+                if n[0] in range(50,180):
+                    HR = int(n[0])
+                    nums = [num for num in nums if n[0]!=num[0]]
+                    break
+        # SpO2 -> in nums nearest to 100 and closest to bbox with text 'sp*2' or 'sp*z'
+        SpO2 = None
+        if len(nums)>0:
+            sps = [n[0] for n in nums if 70<=n[0]<=100]
+            sps.sort(key=lambda x: abs(x-100))
+            SpO2 = int(sps[0])
+
+        # Sys_Dia -> at most 3 digits before and after '/'
+        Sys, Dia = None, None
+        if len(sys_dia)>0:
+            Sys = int(str(sys_dia[0][0][0])[-3:]) 
+            Dia = int(str(sys_dia[0][0][1])[:3])
+        # mAP -> digits between '()' nearest to 100
+        mAP = None
+        if len(mAPs)>0:
+            candidates = [int(item) for item in re.findall(r'\b\d+\b', mAPs[0][0])]
+            candidates.sort(key = lambda x: abs(x-100))
+            mAP = candidates[0]
+        res = {
+            'rr': RR, 'hr': HR, 'spo2': SpO2,
+            'map': mAP, 'sys': Sys, 'dia': Dia,
+        }
+        return res
+
     
-    def read_vitals(self, image, get_mAP=True, conf_thres=.4):
+    def read_vitals(self, image, image_rgb, get_mAP=True, conf_thres=.4):
         results = self.reader.readtext(image)
-        nums, mAPs, sys_sl_dia, sys_sp_dia, others = [], [], [], [], []
+        nums, mAPs, sys_dia, others = [], [], [], []
         for result in results:
             bbox, reading, conf = result
             if conf < conf_thres: continue
@@ -26,37 +73,34 @@ class ScreenOCR(object):
                 num = float(reading)
                 nums.append((num, bbox, conf))
             except ValueError:
-                if get_mAP:
-                    mAP_match = re.search(r'^\(|\)$', reading)
-                if get_mAP and mAP_match:
+                # if get_mAP:
+                mAP_match = re.search(r'^\(|\)$', reading)
+                sd_match = re.search(r'(\d+)[ /_]+(\d+)', reading)
+                if mAP_match:
                     mAPs.append((reading, bbox, conf))
-                elif reading.count('/')==1:
-                    sys_sl_dia.append((reading, bbox, conf))
+                elif sd_match:
+                    sys_dia.append(([int(sd_match.group(1)), int(sd_match.group(2))], bbox, conf))
                 else:
                     others.append((reading, bbox, conf))
         nums.sort(key=lambda x: (x[1][2][0]-x[1][0][0]) * (x[1][3][1]-x[1][1][1]), reverse=True)
-        return (nums, mAPs, sys_dia, others)
+        mAPs.sort(key=lambda x: (x[1][2][0]-x[1][0][0]) * (x[1][3][1]-x[1][1][1]), reverse=True)
+        sys_dia.sort(key=lambda x: (x[1][2][0]-x[1][0][0]) * (x[1][3][1]-x[1][1][1]), reverse=True)
+        print(sys_dia[0][0])
+        res = self.match_vitals_by_logic(nums, mAPs, sys_dia, others, image_rgb)
+        print(res)
 
 
-    def sanity_check_values(self, groups):
+    def sanity_check_values(self, value, vital:str):
         """
         SpO2 -> between 75 - 100
         HR -> between 60 - 150
         mAP -> avg of sys and dia and between 80 - 120
         Sys -> 
         """
-        pass
+        if vital=='HR':
+            return value 
 
-    def match_vitals_by_logic(self, groups):
-        """
-        RR -> in nums nearest to 20 (limit by 0-40)
-        HR -> in nums the most green one and largest area
-        SpO2 -> in nums nearest to 100 and closest to bbox with text 'sp*2' or 'sp*z'
-        mAP -> in mAPs digits between '()'
-        Sys -> 2-3 digits before '/'
-        Dia -> 2-3 digits after '/'
-        """
-        pass
+
 
     def match_vitals_by_position(self, groups, screen_type):
         pass
