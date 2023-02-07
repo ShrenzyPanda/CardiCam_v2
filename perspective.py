@@ -5,8 +5,6 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-import os
-from transform import order_points
 
 
 class Perspective(object):
@@ -108,7 +106,7 @@ class Perspective(object):
             quads = []
             for quad in itertools.combinations(test_corners, 4):
                 points = np.array(quad)
-                points = order_points(points)
+                points = transform.order_points(points)
                 points = np.array([[p] for p in points], dtype = "int32")
                 quads.append(points)
             quads = sorted(quads, key=cv2.contourArea, reverse=True)[:5]
