@@ -1,4 +1,6 @@
 from torch.utils.data import Dataset
+from PIL import Image
+import os
 
 
 class ScreenDataset(Dataset):
@@ -14,13 +16,13 @@ class ScreenDataset(Dataset):
                 for image_name in os.listdir(self.folder_path)]
 
     def __len__(self):
-        return 1 if self.is_image else len(self.image_paths)
+        return 1 if not self.is_dir else len(self.image_paths)
 
     def __getitem__(self, idx):
-        if self.is_image:
-            image = self.image
-        else:
+        if self.is_dir:
             image = Image.open(self.image_paths[idx])
+        else:
+            image = self.image
         if self.transform:
             image = self.transform(image)
         return image, None
