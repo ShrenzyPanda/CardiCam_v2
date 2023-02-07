@@ -1,4 +1,4 @@
-import utils.transform as transform
+import transform as transform
 from scipy.spatial import distance as dist
 from pylsd.lsd import lsd
 import itertools

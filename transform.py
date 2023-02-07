@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from scipy.spatial import distance
+from scipy.spatial import distance as dist
 import matplotlib.pyplot as plt
 import cv2
 
