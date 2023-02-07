@@ -40,8 +40,8 @@ class ScreenOCR(object):
                     break
         # SpO2 -> in nums nearest to 100 and closest to bbox with text 'sp*2' or 'sp*z'
         SpO2 = None
-        if len(nums)>0:
-            sps = [n[0] for n in nums if 70<=n[0]<=100]
+        sps = [n[0] for n in nums if 70<=n[0]<=100]
+        if len(sps)>0:
             sps.sort(key=lambda x: abs(x-100))
             SpO2 = int(sps[0])
 
@@ -85,9 +85,9 @@ class ScreenOCR(object):
         nums.sort(key=lambda x: (x[1][2][0]-x[1][0][0]) * (x[1][3][1]-x[1][1][1]), reverse=True)
         mAPs.sort(key=lambda x: (x[1][2][0]-x[1][0][0]) * (x[1][3][1]-x[1][1][1]), reverse=True)
         sys_dia.sort(key=lambda x: (x[1][2][0]-x[1][0][0]) * (x[1][3][1]-x[1][1][1]), reverse=True)
-        print(sys_dia[0][0])
         res = self.match_vitals_by_logic(nums, mAPs, sys_dia, others, image_rgb)
-        print(res)
+        # print(res)
+        return res
 
 
     def sanity_check_values(self, value, vital:str):
