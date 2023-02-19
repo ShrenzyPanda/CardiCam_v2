@@ -1,3 +1,3 @@
 # CardiCam
 
-Check Team29_fin.pdf for all the necesary implementation details
+Check Team29_Fin.pdf for all the necesary implementation details
