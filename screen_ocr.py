@@ -6,7 +6,10 @@ import re
 
 def count_greenary(img, bbox):
     x1,y1,x2,y2 = bbox[0][0], bbox[0][1], bbox[2][0], bbox[2][1]
-    img_hsv = cv2.cvtColor(img[y1:y2, x1:x2], cv2.COLOR_BGR2HSV)    
+    crop_img = img[y1:y2,x1:x2]
+    cv2.imwrite('crop_img.jpeg',crop_img)
+    print(crop_img.shape)
+    img_hsv = cv2.cvtColor(crop_img, cv2.COLOR_BGR2HSV)    
     lower_green = np.array([40, 40, 40])
     upper_green = np.array([70, 255, 255])
     mask = cv2.inRange(img_hsv, lower_green, upper_green)
@@ -57,8 +60,8 @@ class ScreenOCR(object):
             candidates.sort(key = lambda x: abs(x-100))
             mAP = candidates[0]
         res = {
-            'rr': RR, 'hr': HR, 'spo2': SpO2,
-            'map': mAP, 'sys': Sys, 'dia': Dia,
+            'RR': RR, 'HR': HR, 'SPO2': SpO2,
+            'MAP': mAP, 'SBP': Sys, 'DBP': Dia,
         }
         return res
 

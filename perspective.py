@@ -5,6 +5,7 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import math
 
 
 class Perspective(object):
@@ -21,6 +22,29 @@ class Perspective(object):
             if check_distance(filtered_corners, c):
                 filtered_corners.append(c)
         return filtered_corners
+    
+    def angle_between_vectors_degrees(self, u, v):
+        return np.degrees(math.acos(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))))
+
+    def get_angle(self, p1, p2, p3):
+        a = np.radians(np.array(p1))
+        b = np.radians(np.array(p2))
+        c = np.radians(np.array(p3))
+
+        avec = a - b
+        cvec = c - b
+
+        return self.angle_between_vectors_degrees(avec, cvec)
+
+    def angle_range(self, quad):
+        tl, tr, br, bl = quad
+        ura = self.get_angle(tl[0], tr[0], br[0])
+        ula = self.get_angle(bl[0], tl[0], tr[0])
+        lra = self.get_angle(tr[0], br[0], bl[0])
+        lla = self.get_angle(br[0], bl[0], tl[0])
+
+        angles = [ura, ula, lra, lla]
+        return np.ptp(angles)
 
     def get_corners(self, img):
         """
@@ -83,8 +107,7 @@ class Perspective(object):
         return corners
 
     def is_valid_contour(self, cnt, IM_WIDTH, IM_HEIGHT):
-        return (len(cnt) == 4 and cv2.contourArea(cnt) > IM_WIDTH * IM_HEIGHT * self.MIN_AREA_RATIO 
-            and self.angle_range(cnt) < self.MAX_ANGLE_DIFF)
+        return (len(cnt) == 4 and cv2.contourArea(cnt) > IM_WIDTH * IM_HEIGHT * 0.25 and self.angle_range(cnt) < 45)
 
     def get_contour(self, rescaled_image, plot_fig=False):
         """
