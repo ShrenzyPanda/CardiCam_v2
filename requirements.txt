@@ -6,4 +6,3 @@ PyYAML
 setuptools
 thop
 wandb
-onnx_graphsurgeon
