@@ -1,8 +1,9 @@
 easyocr==1.6.2
-ocrd_fork_pylsd==0.0.3
-onnx==1.12.0
-pafy==0.5.5
-PyYAML==6.0.1
-setuptools==58.1.0
-thop==0.1.1.post2209072238
-wandb==0.16.6
+ocrd_fork_pylsd
+onnx
+pafy
+PyYAML
+setuptools
+thop
+wandb
+onnx_graphsurgeon
